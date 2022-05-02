@@ -1,0 +1,72 @@
+version: '3.7'
+
+services:
+  # PHP-FPM - Service
+  prueba-desarrollo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: prueba-desarrollo
+    restart: unless-stopped
+    tty: true
+    working_dir: /var/www
+
+    volumes:
+      - ./:/var/www
+      - ./docker-files/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+
+    networks:
+      - prueba-desarrollo-network
+
+  # NGINX - Service
+  webserver:
+    image: nginx:latest
+    container_name: webserver-prueba
+    restart: unless-stopped
+    tty: true
+
+    ports:
+      - "8100:80"
+      - "8143:443"
+
+    volumes:
+      - ./:/var/www
+      - ./docker-files/nginx/conf.d/:/etc/nginx/conf.d/
+
+    depends_on:
+    - prueba-desarrollo
+
+    networks:
+      - prueba-desarrollo-network
+
+  # MariaDB - Service
+  db:
+    image: mariadb:10.5.6
+    container_name: db-prueba
+    restart: unless-stopped
+    tty: true
+
+    ports:
+      - "3306:3306"
+
+    environment:
+      MYSQL_DATABASE: formalizacion_hipotecaria
+      MYSQL_ROOT_PASSWORD: root
+
+    volumes:
+      - mariadbdata:/var/lib/mysql
+      - ./docker-files/mysql/my.cnf:/etc/mysql/my.cnf
+
+    networks:
+      - prueba-desarrollo-network
+
+# Volumes
+volumes:
+  mariadbdata:
+    driver: local
+
+# Networks
+networks:
+  prueba-desarrollo-network:
+    driver: bridge
